@@ -4,6 +4,6 @@
 #include"../Share/Hook/SimpleHook.h"
 #include"../Share/Simple/Simple.h"
 
-bool NMCO_Hook();
+bool NMCO_Hook(Rosemary &r);
 
 #endif

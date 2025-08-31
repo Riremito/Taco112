@@ -21,7 +21,8 @@ void __fastcall RenderFrame_Hook(void *ecx, void *edx) {
 	return _RenderFrame(ecx);
 }
 
-decltype(GetModuleHandleA) *_GetModuleHandleA;
+// EHSvc.dll check
+decltype(GetModuleHandleA) *_GetModuleHandleA = NULL;
 HMODULE WINAPI GetModuleHandleA_Hook(LPCSTR lpModuleName) {
 	if (SimpleHook::IsCallerEXE(_ReturnAddress())) {
 		if (lpModuleName && strcmp(lpModuleName, "ehsvc.dll") == 0) {
@@ -56,8 +57,7 @@ bool CrashCodeScanner(ULONG_PTR addr) {
 	return false;
 }
 
-bool Taco112_Install() {
-	Rosemary r;
+bool TacoHook_Main(Rosemary &r) {
 	// ProcessPacket inside.
 	ULONG_PTR uHS_PtrRef = r.Scan(L"8B 0D ?? ?? ?? ?? 85 C9 74 ?? 8B 44 24 ?? 50 E8 ?? ?? ?? ?? EB");
 	ULONG_PTR uHS_PtrCheck = 0;
@@ -89,24 +89,38 @@ bool Taco112_Install() {
 		r.Patch(uCrashCodeAddr, L"EB 2F");
 		SCANRES(uCrashCodeAddr);
 	}
+
 	// ehsvc.dll checks
 	SHook(GetModuleHandleA);
+
 	// MSCRC
 	gRenderFrame = r.Scan(L"56 57 8B F9 8B 07 8B 48 1C 57 FF D1 8B F0 85 F6 7D 0E 68 ?? ?? ?? ?? 57 56 E8 ?? ?? ?? ?? 8B C6 5F 5E C3");
 	gRun_Leave_VM = r.Scan(L"6A 01 FF 15 ?? ?? ?? ?? 8B ?? 08 83 ?? 00 75");
 	SHookFunction(RenderFrame, gRenderFrame);
 	DEBUG(L"RemoveCRC_Run: " + DWORDtoString(gRenderFrame) + L" -> " + DWORDtoString(gRun_Leave_VM));
-
-	// ShowADBalloon
-	r.Patch(L"6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 83 EC 64 53 55 56 57 A1 ?? ?? ?? ?? 33 C4 50 8D 44 24 78 64 A3 00 00 00 00 33 ?? 5? FF 15", L"B8 01 00 00 00 C3");
-	// ShowStartUpWnd
-	r.Patch(L"83 EC ?? 55 56 33 ED 55 FF 15 ?? ?? ?? ?? 8B 74 24 ?? 89 35 ?? ?? ?? ?? 8B 86 ?? ?? ?? ?? 8D 4C 24 ?? 51 C7", L"B8 01 00 00 00 C3");
-
-	NMCO_Hook();
 	return true;
 }
 
 
+bool TacoHook_Sub(Rosemary &r) {
+	// ShowADBalloon
+	r.Patch(L"6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 83 EC 64 53 55 56 57 A1 ?? ?? ?? ?? 33 C4 50 8D 44 24 78 64 A3 00 00 00 00 33 ?? 5? FF 15", L"B8 01 00 00 00 C3");
+	// ShowStartUpWnd
+	r.Patch(L"83 EC ?? 55 56 33 ED 55 FF 15 ?? ?? ?? ?? 8B 74 24 ?? 89 35 ?? ?? ?? ?? 8B 86 ?? ?? ?? ?? 8D 4C 24 ?? 51 C7", L"B8 01 00 00 00 C3");
+	return true;
+}
+
+// delay executed.
+bool TacoHook2() {
+	Rosemary r;
+
+	TacoHook_Main(r);
+	NMCO_Hook(r);
+	TacoHook_Sub(r);
+	return true;
+}
+
+// Multi Client
 #define MUTEX_MAPLE L"WvsClientMtx"
 bool IsMapleMutex(LPCWSTR lpName) {
 	if (!lpName) {
@@ -130,7 +144,6 @@ bool CloseMutex(HANDLE hMutex) {
 	return false;
 }
 
-
 bool bAlreadyLoaded = false;
 decltype(CreateMutexExW) *_CreateMutexExW = NULL;
 HANDLE WINAPI CreateMutexExW_Hook(LPSECURITY_ATTRIBUTES lpMutexAttributes, LPCWSTR lpName, DWORD dwFlags, DWORD dwDesiredAccess) {
@@ -141,23 +154,37 @@ HANDLE WINAPI CreateMutexExW_Hook(LPSECURITY_ATTRIBUTES lpMutexAttributes, LPCWS
 		if (!bAlreadyLoaded) {
 			bAlreadyLoaded = true;
 			DEBUG(L"DelayLoad CreateMutexExW");
-			Taco112_Install();
+			TacoHook2();
 		}
 	}
 
 	return hRet;
 }
 
+// GameLaunching
+std::string gFakeCommandLine;
 decltype(GetCommandLineA) *_GetCommandLineA = NULL;
-std::string fake_cmd_line;
 LPSTR WINAPI GetCommandLineA_Hook() {
-	return (LPSTR)fake_cmd_line.c_str();
+	return (LPSTR)gFakeCommandLine.c_str();
 }
 
-bool Taco112_Start() {
+bool SetFakeCommandLine() {
+	gFakeCommandLine = _GetCommandLineA();
+	if (strstr(gFakeCommandLine.c_str(), " GameLaunching")) {
+		return false;
+	}
+	gFakeCommandLine += " GameLaunching";
+	return true;
+}
+
+bool TacoHook1() {
 	SHook(GetCommandLineA);
-	fake_cmd_line = _GetCommandLineA();
-	fake_cmd_line += " GameLaunching";
 	SHook(CreateMutexExW);
+	return true;
+}
+
+bool Taco112_Install() {
+	TacoHook1();
+	SetFakeCommandLine();
 	return true;
 }

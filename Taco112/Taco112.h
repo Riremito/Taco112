@@ -4,6 +4,6 @@
 #include"../Share/Hook/SimpleHook.h"
 #include"../Share/Simple/Simple.h"
 
-bool Taco112_Start();
+bool Taco112_Install();
 
 #endif
