@@ -1,0 +1,4 @@
+﻿LIBRARY
+EXPORTS
+	FakeExport1 = FakeExport1 @1
+	FakeExport2 = FakeExport2 @2
