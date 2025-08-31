@@ -152,6 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="NexonGuard.cpp" />
+    <ClCompile Include="NMCO.cpp" />
     <ClCompile Include="Redirector.cpp" />
     <ClCompile Include="Taco112.cpp" />
   </ItemGroup>
@@ -160,6 +161,7 @@
     <None Include="NexonGuard.def" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="NMCO.h" />
     <ClInclude Include="Redirector.h" />
     <ClInclude Include="Taco112.h" />
   </ItemGroup>

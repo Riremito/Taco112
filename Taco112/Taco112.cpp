@@ -1,4 +1,5 @@
 ﻿#include"Taco112.h"
+#include"NMCO.h"
 #include<intrin.h>
 #pragma intrinsic(_ReturnAddress)
 
@@ -100,6 +101,8 @@ bool Taco112_Install() {
 	r.Patch(L"6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 83 EC 64 53 55 56 57 A1 ?? ?? ?? ?? 33 C4 50 8D 44 24 78 64 A3 00 00 00 00 33 ?? 5? FF 15", L"B8 01 00 00 00 C3");
 	// ShowStartUpWnd
 	r.Patch(L"83 EC ?? 55 56 33 ED 55 FF 15 ?? ?? ?? ?? 8B 74 24 ?? 89 35 ?? ?? ?? ?? 8B 86 ?? ?? ?? ?? 8D 4C 24 ?? 51 C7", L"B8 01 00 00 00 C3");
+
+	NMCO_Hook();
 	return true;
 }
 
